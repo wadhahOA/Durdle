@@ -1,0 +1,1065 @@
+---
+openapi: 3.1.0
+paths:
+  /api/error:
+    get:
+      responses:
+        "200":
+          description: OK
+      summary: Error
+      tags:
+      - Hello World Resource
+  /api/hello:
+    get:
+      responses:
+        "200":
+          description: OK
+      summary: Hello World
+      tags:
+      - Hello World Resource
+  /api/projects:
+    get:
+      summary: List projects of user
+      description: |
+        List all the projects of the logged in user.
+
+        The param onlyOwned specifies if the response should return all the projects the user is a member of,
+        or only those the user owns.
+
+        By default onlyOwned is considered as false.
+
+        Any logged in user can access this endpoint.
+      tags:
+      - Project
+      parameters:
+      - name: onlyOwned
+        in: query
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: List of the projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectResponse'
+        "403":
+          description: Should not happen (this is automatically generated)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    post:
+      summary: Create a project
+      description: |
+        Create a new project with a name, the owner should also be in the list of members.
+
+        Any logged in user can access this endpoint.
+      tags:
+      - Project
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProjectRequest'
+        required: true
+      responses:
+        "200":
+          description: The created project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        "400":
+          description: The project name is invalid (null or empty for example)
+        "403":
+          description: Should not happen (this is automatically generated)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/all:
+    get:
+      summary: List all the projects
+      description: |
+        List all the projects available, be careful the response should not contain all the information about the members or the owner.
+
+        Only an admin can access this endpoint.
+      tags:
+      - Project
+      responses:
+        "200":
+          description: List of the projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectResponse'
+        "403":
+          description: The user is not an admin
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme:
+        - admin
+  /api/projects/{id}:
+    put:
+      summary: Update a project
+      description: |
+        Update a project, by changing its name or the owner of the project.
+
+        If the new owner id or the new name are the same as the current one, it should not change anything and it is not an error.
+
+        You should only update the fields that are not null in the request.
+        If some fields are null, they should not be updated.
+
+        If all the fields are null, it should return a bad request.
+
+        Only the owner of the project or an admin can access this endpoint.
+      tags:
+      - Project
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+        required: true
+      responses:
+        "200":
+          description: The project was modified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        "404":
+          description: "The project could not be found, or the new owner is not a\
+            \ member of the project"
+        "403":
+          description: The user is not allowed to access the project
+        "400":
+          description: Both the name and the new owner are null
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    get:
+      summary: Get a project
+      description: |-
+        Get a specific project based on its id.
+
+        A user can access this endpoint if he is a member of the project or the owner.
+
+        An admin can access this endpoint in any case.
+      tags:
+      - Project
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: The project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        "404":
+          description: Project not found
+        "403":
+          description: The user is not allowed to access the project
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    delete:
+      summary: Delete a project
+      description: |
+        Delete a project.
+
+        Only the owner of the project or an admin can access this endpoint.
+      tags:
+      - Project
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "204":
+          description: The project was deleted
+        "404":
+          description: The project could not be found
+        "403":
+          description: The user is not allowed to access this project
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{id}/add-user:
+    post:
+      summary: Add a member
+      description: |
+        Add a member to a project.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - Project
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProjectRequest'
+        required: true
+      responses:
+        "204":
+          description: The user was added to the project
+        "404":
+          description: "The project, or the user could not be found"
+        "403":
+          description: The user is not allowed to access the project
+        "400":
+          description: The userId is invalid (null or empty for example)
+        "409":
+          description: The user is already a member of the project
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{id}/exec:
+    post:
+      summary: Execute a feature
+      description: |
+        Execute a feature on the project.
+
+        For git features:
+
+        If the project is not a git repository, it should return a bad request (except if the feature is git init).
+
+
+        For git add, if a file does not exist it should return a bad request.
+
+        Any other error should be returned as an internal server error.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - Project
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecFeatureRequest'
+        required: true
+      responses:
+        "204":
+          description: The feature was successfully executed
+        "404":
+          description: The project could not be found
+        "403":
+          description: The user is not allowed to access the project
+        "400":
+          description: "Any parameter of the request is invalid (null or non-existent\
+            \ feature)"
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{id}/remove-user:
+    post:
+      summary: Remove a member
+      description: |
+        Remove a member from a project.
+
+        Only the owner of the project or an admin can access this endpoint.
+      tags:
+      - Project
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProjectRequest'
+        required: true
+      responses:
+        "204":
+          description: The user was removed from the project
+        "404":
+          description: "The project, or the user could not be found, the user to remove\
+            \ is not a member of the project"
+        "403":
+          description: "The user is not allowed to access the project, or the user\
+            \ to remove is the owner of the project"
+        "400":
+          description: The userId is invalid (null or empty for example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{projectId}/files:
+    get:
+      summary: Get a file
+      description: |
+        Retrieve the content of a file.
+
+        It should return a byte array of the content of the file.
+
+        The content type must be application/octet-stream.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - File
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: path
+        in: query
+        schema:
+          type: string
+          default: ""
+      responses:
+        "200":
+          description: Content of the file
+        "404":
+          description: The project or the relative path could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "400":
+          description: The relative path is invalid (null or empty for example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    delete:
+      summary: Delete a file
+      description: |
+        Delete a file from the file system and all its content, be careful if the file is the root
+        you should only empty it and not remove the root file of the project.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - File
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathRequest'
+        required: true
+      responses:
+        "204":
+          description: The file was deleted
+        "404":
+          description: The project or the file could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "400":
+          description: The source or destination path is invalid (null or empty for
+            example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    post:
+      summary: Create a file
+      description: |
+        Create a new file on the file system.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - File
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathRequest'
+        required: true
+      responses:
+        "201":
+          description: The file was created
+        "404":
+          description: The project could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "409":
+          description: The file already exists
+        "400":
+          description: The relative path is invalid (null or empty for example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{projectId}/files/move:
+    put:
+      summary: Move a file
+      description: |
+        Move a file to a new location or rename it if the destination is in the same parent directory
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - File
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveRequest'
+        required: true
+      responses:
+        "204":
+          description: The file was renamed
+        "404":
+          description: The project could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "409":
+          description: The file already exists
+        "400":
+          description: The source or destination path is invalid (null or empty for
+            example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{projectId}/files/upload:
+    post:
+      summary: Upload a new file
+      description: |
+        Upload data to create or modify a file, it should write the content
+        of the body to the file and create it if it does not exist.
+
+        The content type received must be application/octet-stream.
+
+        You can retrieve the data of the body using the InputStream type for your parameter.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - File
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: path
+        in: query
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        required: true
+      responses:
+        "201":
+          description: The file was created
+        "404":
+          description: The project could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "400":
+          description: The relative path is invalid (null or empty for example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{projectId}/folders:
+    get:
+      summary: List a folder
+      description: |
+        List the content of the folder located at the given path
+        in the project with the given id. By default it lists the root folder.
+
+        It is NOT a recursive listing, it only lists the immediate children of the folder.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - Folder
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: path
+        in: query
+        schema:
+          type: string
+          default: ""
+      responses:
+        "200":
+          description: List of folder entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FSEntryResponse'
+        "404":
+          description: The project or the relative path could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    delete:
+      summary: Delete a folder
+      description: |
+        Delete a folder from the file system and all its content,
+        be careful if the folder is the root you should only empty it and not remove the root folder of the project.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - Folder
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathRequest'
+        required: true
+      responses:
+        "204":
+          description: The folder was deleted
+        "404":
+          description: The project or the folder could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "400":
+          description: The relative path is invalid (null or empty for example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    post:
+      summary: Create a folder
+      description: |
+        Create a new folder on the file system.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - Folder
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathRequest'
+        required: true
+      responses:
+        "201":
+          description: The folder was created
+        "404":
+          description: The project could not be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "409":
+          description: The folder already exists
+        "400":
+          description: The relative path is invalid (null or empty for example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/projects/{projectId}/folders/move:
+    put:
+      summary: Move a folder
+      description: |
+        Move a folder to a new location, or rename it if the destination is in the same parent directory.
+
+        Any member of the project or an admin can access this endpoint.
+      tags:
+      - Folder
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveRequest'
+        required: true
+      responses:
+        "204":
+          description: The folder was renamed
+        "404":
+          description: The project could not be found or the source folder could not
+            be found
+        "403":
+          description: The user is not allowed to access the project or a path traversal
+            attack was detected
+        "409":
+          description: The folder already exists
+        "400":
+          description: The source or destination path is invalid (null or empty for
+            example)
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/user:
+    post:
+      summary: Create a user
+      description: |
+        Create a new user, its login should be unique and contain at most
+        one '.' or '_'. The name should be initialized to the login split and capitalized on the separator.
+
+        Only an admin can access this endpoint.
+      tags:
+      - User
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUserRequest'
+        required: true
+      responses:
+        "200":
+          description: The created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        "400":
+          description: The login or the password is invalid
+        "409":
+          description: The login is already taken
+        "403":
+          description: The user is not an admin
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme:
+        - admin
+  /api/user/all:
+    get:
+      summary: List all the users
+      description: |
+        List all the users available, be careful the response should not contain all the
+        information about the members or the owner.
+
+        Only an admin can access this endpoint.
+      tags:
+      - User
+      responses:
+        "200":
+          description: List of the users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        "403":
+          description: The user is not an admin
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme:
+        - admin
+  /api/user/login:
+    post:
+      summary: Login a user
+      description: |
+        Login a user with its login and password.
+
+        It should return a token if the login/password combination is valid.
+      tags:
+      - User
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        "200":
+          description: The token of the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        "401":
+          description: The login/password combination is invalid
+        "400":
+          description: The login or the password is null
+      servers:
+      - url: http://localhost:8080
+  /api/user/refresh:
+    get:
+      summary: Refresh a token
+      description: |
+        Refresh the token of a user by returning a new one.
+
+        Only a logged in user can access this endpoint.
+      tags:
+      - User
+      responses:
+        "200":
+          description: The new token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        "404":
+          description: The user could not be found
+        "401":
+          description: Not Authorized
+        "403":
+          description: Not Allowed
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+  /api/user/{id}:
+    put:
+      summary: Update a user
+      description: |
+        Update a user
+
+        For the sake of simplicity the password can be modified.
+
+        Any blank value should be ignored (except for the avatar).
+
+        Only the same user or an admin can access this endpoint.
+      tags:
+      - User
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+        required: true
+      responses:
+        "200":
+          description: The modified user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        "404":
+          description: The user could not be found
+        "403":
+          description: The user is not allowed
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    get:
+      summary: Get a user
+      description: |
+        Get the data of a user.
+
+        A user can only access its data while an admin can access any user data.
+      tags:
+      - User
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: The user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        "404":
+          description: User not found
+        "403":
+          description: The user is not allowed to access this user
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme: []
+    delete:
+      summary: Delete a user
+      description: |
+        Delete a user.
+
+        If the user owns projects, he cannot be deleted and a forbidden response should be returned.
+
+        Only an admin can access this endpoint.
+      tags:
+      - User
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "204":
+          description: The user was deleted
+        "404":
+          description: The user could not be found
+        "403":
+          description: "The user is not allowed to access this endpoint, or the user\
+            \ owns projects"
+        "401":
+          description: Not Authorized
+      servers:
+      - url: http://localhost:8080
+      security:
+      - SecurityScheme:
+        - admin
+components:
+  schemas:
+    ExecFeatureRequest:
+      type: object
+      properties:
+        feature:
+          type: string
+        command:
+          type: string
+        params:
+          type: array
+          items:
+            type: string
+    FSEntryResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        isDirectory:
+          type: boolean
+    LoginRequest:
+      type: object
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+    MoveRequest:
+      type: object
+      properties:
+        src:
+          type: string
+        dst:
+          type: string
+    NewProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+    NewUserRequest:
+      type: object
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+        isAdmin:
+          type: boolean
+    PathRequest:
+      type: object
+      properties:
+        relativePath:
+          type: string
+    ProjectResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummaryResponse'
+        owner:
+          $ref: '#/components/schemas/UserSummaryResponse'
+    UUID:
+      type: string
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        newOwnerId:
+          $ref: '#/components/schemas/UUID'
+    UpdateUserRequest:
+      type: object
+      properties:
+        password:
+          type: string
+        displayName:
+          type: string
+        avatar:
+          type: string
+    UserProjectRequest:
+      type: object
+      properties:
+        userId:
+          $ref: '#/components/schemas/UUID'
+    UserResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        login:
+          type: string
+        displayName:
+          type: string
+        isAdmin:
+          type: boolean
+        avatar:
+          type: string
+    UserSummaryResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        displayName:
+          type: string
+        avatar:
+          type: string
+  securitySchemes:
+    SecurityScheme:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Authentication
+tags:
+- name: File
+  description: File API
+- name: Folder
+  description: Folder API
+- name: Project
+  description: Project API
+- name: User
+  description: User API
+info:
+  title: ping API
+  version: "1.0"
